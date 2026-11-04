@@ -1,0 +1,85 @@
+{
+  "name": "pos-kasa-sistemi",
+  "version": "1.0.0",
+  "description": "POS Kasa Sistemi - Electron masaüstü uygulaması",
+  "main": "main.js",
+  "author": "",
+  "license": "MIT",
+  "scripts": {
+    "start": "electron .",
+    "pack": "electron-builder --dir",
+    "dist": "electron-builder",
+    "config:dev": "node scripts/set-config.js development",
+    "config:onprem": "node scripts/set-config.js onprem",
+    "config:prod": "node scripts/set-config.js production",
+    "dist:onprem": "npm run config:onprem && electron-builder",
+    "dist:prod": "npm run config:prod && electron-builder",
+    "dist:dev": "npm run config:dev && electron-builder --dir",
+    "preflight": "powershell -ExecutionPolicy Bypass -File scripts/preflight-check.ps1",
+    "build:master": "powershell -ExecutionPolicy Bypass -File installer/build-master.ps1"
+  },
+  "dependencies": {},
+  "devDependencies": {
+    "bcryptjs": "^2.4.3",
+    "body-parser": "^1.20.2",
+    "cors": "^2.8.5",
+    "electron": "^37.2.3",
+    "electron-builder": "^26.0.12",
+    "electron-pack": "^1.3.2",
+    "electron-packager": "^17.1.2",
+    "express": "^4.18.2",
+    "jsonwebtoken": "^9.0.2",
+    "nodemon": "^3.0.1",
+    "sqlite3": "^5.1.6"
+  },
+  "build": {
+    "appId": "com.poskasasistemi.desktop",
+    "productName": "POS Kasa Sistemi",
+    "directories": {
+      "output": "dist",
+      "buildResources": "build"
+    },
+    "files": [
+      "main.js",
+      "login.html",
+      "activate.html",
+      "insert.html",
+      "admin.paneli.html",
+      "style.css",
+      "*.mp3",
+      "frontend/**/*",
+      "assets/**/*",
+      "package.json",
+      "!backend/**",
+      "!backend",
+      "!server.js",
+      "!kasa_sistemi.db",
+      "!**/*.db",
+      "!dist/**",
+      "!**/.env",
+      "!**/.env.*",
+      "!**/*.test.js",
+      "!**/*.spec.js",
+      "!**/test/**",
+      "!**/tests/**"
+    ],
+    "win": {
+      "target": [
+        "nsis"
+      ]
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "shortcutName": "POS Kasa Sistemi",
+      "artifactName": "POS-Kasa-Sistemi-Setup-${version}.${ext}"
+    }
+  },
+  "keywords": [
+    "kasa",
+    "pos",
+    "electron"
+  ]
+}

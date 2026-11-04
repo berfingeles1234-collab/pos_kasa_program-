@@ -1,0 +1,41 @@
+{
+  "name": "pos-backend",
+  "version": "1.0.0",
+  "description": "Multi-tenant POS API",
+  "main": "src/server.js",
+  "scripts": {
+    "start": "node src/server.js",
+    "start:prod": "NODE_ENV=production node src/server.js",
+    "dev": "nodemon src/server.js",
+    "db:migrate": "node src/db/migrate.js",
+    "db:seed": "node src/db/seed.js",
+    "db:seed-license": "node src/db/seed-license.js",
+    "pm2:start": "pm2 start ecosystem.config.js --env production",
+    "pm2:restart": "pm2 restart pos-backend",
+    "pm2:logs": "pm2 logs pos-backend",
+    "backup": "bash scripts/backup-postgres.sh",
+    "backup:win": "powershell -ExecutionPolicy Bypass -File scripts/backup-postgres.ps1",
+    "service:install": "powershell -ExecutionPolicy Bypass -File ../scripts/install-service.ps1",
+    "service:uninstall": "powershell -ExecutionPolicy Bypass -File ../scripts/uninstall-service.ps1",
+    "service:start": "powershell -ExecutionPolicy Bypass -File ../scripts/start-service.ps1",
+    "service:stop": "powershell -ExecutionPolicy Bypass -File ../scripts/stop-service.ps1",
+    "preflight": "powershell -ExecutionPolicy Bypass -File ../scripts/preflight-check.ps1"
+  },
+  "keywords": [
+    "pos",
+    "api",
+    "postgresql"
+  ],
+  "license": "MIT",
+  "dependencies": {
+    "bcryptjs": "^2.4.3",
+    "cors": "^2.8.5",
+    "dotenv": "^16.4.5",
+    "express": "^4.18.2",
+    "jsonwebtoken": "^9.0.2",
+    "pg": "^8.13.1"
+  },
+  "devDependencies": {
+    "nodemon": "^3.0.1"
+  }
+}

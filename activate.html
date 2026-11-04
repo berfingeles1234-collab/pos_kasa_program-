@@ -1,0 +1,267 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+  <meta charset="UTF-8">
+  <title>POS Kasa Sistemi - Aktivasyon</title>
+  <style>
+    body {
+      margin: 0;
+      font-family: sans-serif;
+      background: linear-gradient(135deg, #eef1ff 0%, #dce6ff 100%);
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      min-height: 100vh;
+      padding: 20px;
+      box-sizing: border-box;
+    }
+
+    .activation-box {
+      background: #ffffff;
+      width: 100%;
+      max-width: 420px;
+      padding: 32px;
+      border-radius: 14px;
+      box-shadow: 0 12px 40px rgba(35, 6, 163, 0.15);
+    }
+
+    .activation-box h1 {
+      margin: 0 0 8px;
+      color: #2306a3;
+      font-size: 24px;
+      text-align: center;
+    }
+
+    .activation-box p.subtitle {
+      margin: 0 0 24px;
+      color: #666;
+      text-align: center;
+      font-size: 14px;
+    }
+
+    label {
+      display: block;
+      margin-bottom: 6px;
+      color: #333;
+      font-size: 14px;
+      font-weight: 600;
+    }
+
+    input {
+      width: 100%;
+      padding: 12px;
+      margin-bottom: 16px;
+      border: 1px solid #ccd3ef;
+      border-radius: 8px;
+      font-size: 15px;
+      box-sizing: border-box;
+    }
+
+    input:focus {
+      outline: none;
+      border-color: #2306a3;
+      box-shadow: 0 0 0 3px rgba(35, 6, 163, 0.12);
+    }
+
+    button {
+      width: 100%;
+      padding: 12px;
+      background: #2306a3;
+      color: #fff;
+      border: none;
+      border-radius: 8px;
+      font-size: 16px;
+      font-weight: bold;
+      cursor: pointer;
+    }
+
+    button:disabled {
+      opacity: 0.7;
+      cursor: not-allowed;
+    }
+
+    .message {
+      margin-top: 16px;
+      padding: 12px;
+      border-radius: 8px;
+      font-size: 14px;
+      text-align: center;
+      display: none;
+    }
+
+    .message.error {
+      display: block;
+      background: #ffe8e8;
+      color: #b00020;
+      border: 1px solid #ffb3b3;
+    }
+
+    .message.success {
+      display: block;
+      background: #e8fff0;
+      color: #0f7a3d;
+      border: 1px solid #9be6b4;
+    }
+
+    .device-info {
+      margin-top: 20px;
+      padding: 12px;
+      background: #f7f8ff;
+      border-radius: 8px;
+      font-size: 12px;
+      color: #555;
+      word-break: break-all;
+    }
+  </style>
+</head>
+<body>
+  <div class="activation-box">
+    <h1>POS Kasa Sistemi</h1>
+    <p class="subtitle">Lisans aktivasyonu</p>
+
+    <form id="activationForm">
+      <label for="licenseKey">Lisans Anahtarı</label>
+      <input type="text" id="licenseKey" placeholder="Örn: DEMO-POS-LICENSE-2025" required autocomplete="off">
+
+      <label for="deviceName">Cihaz Adı</label>
+      <input type="text" id="deviceName" placeholder="Örn: Ana Kasa PC" required autocomplete="off">
+
+      <button type="submit" id="activateBtn">Aktive Et</button>
+    </form>
+
+    <div id="messageBox" class="message"></div>
+
+    <div class="device-info">
+      <div><strong>Cihaz ID:</strong> <span id="fingerprintPreview">-</span></div>
+    </div>
+  </div>
+
+  <script src="frontend/js/config.js"></script>
+  <script src="frontend/js/device.js"></script>
+  <script src="frontend/js/apiClient.js"></script>
+  <script>
+    const messageBox = document.getElementById('messageBox');
+    const activateBtn = document.getElementById('activateBtn');
+    const licenseKeyInput = document.getElementById('licenseKey');
+    const deviceNameInput = document.getElementById('deviceName');
+
+    function showMessage(text, type) {
+      messageBox.textContent = text;
+      messageBox.className = 'message ' + type;
+    }
+
+    function clearMessage() {
+      messageBox.textContent = '';
+      messageBox.className = 'message';
+    }
+
+    function mapActivationError(error) {
+      const message = (error && error.message) ? error.message : '';
+
+      if (
+        message.includes('Failed to fetch') ||
+        message.includes('NetworkError') ||
+        message.includes('Network request failed')
+      ) {
+        return 'Sunucuya bağlanılamadı';
+      }
+
+      if (
+        message.includes('Geçersiz lisans') ||
+        message.includes('bulunamadı')
+      ) {
+        return 'Geçersiz lisans';
+      }
+
+      if (message.includes('süresi dolmuş') || message.includes('expired')) {
+        return 'Süresi dolmuş lisans';
+      }
+
+      if (message.includes('farklı bir mağazada')) {
+        return 'Cihaz zaten farklı mağazada kayıtlı';
+      }
+
+      if (message.includes('başka bir cihazda')) {
+        return 'Lisans başka bir cihazda aktif';
+      }
+
+      if (message.includes('aktif değil')) {
+        return 'Lisans aktif değil';
+      }
+
+      return message || 'Aktivasyon başarısız';
+    }
+
+    function isNetworkError(error) {
+      const message = (error && error.message) ? error.message : '';
+      return (
+        message.includes('Failed to fetch') ||
+        message.includes('NetworkError') ||
+        message.includes('Network request failed')
+      );
+    }
+
+    async function tryRedirectIfAlreadyActivated() {
+      if (!ApiClient.hasLicenseActivation()) {
+        return;
+      }
+
+      try {
+        await ApiClient.validateLicense();
+        window.location.href = 'login.html';
+      } catch (error) {
+        if (isNetworkError(error)) {
+          showMessage('Sunucuya bağlanılamadı. Aktivasyon kayıtlı; sunucu açıldığında giriş yapabilirsiniz.', 'error');
+        }
+      }
+    }
+
+    async function handleActivate(event) {
+      event.preventDefault();
+      clearMessage();
+
+      const licenseKey = licenseKeyInput.value.trim();
+      const deviceName = deviceNameInput.value.trim();
+      const deviceFingerprint = DeviceIdentity.getDeviceFingerprint();
+
+      if (!licenseKey || !deviceName) {
+        showMessage('Lisans anahtarı ve cihaz adı zorunludur.', 'error');
+        return;
+      }
+
+      DeviceIdentity.setDeviceName(deviceName);
+      activateBtn.disabled = true;
+      activateBtn.textContent = 'Aktive ediliyor...';
+
+      try {
+        const result = await ApiClient.activateLicense({
+          license_key: licenseKey,
+          device_fingerprint: deviceFingerprint,
+          device_name: deviceName,
+          app_version: DeviceIdentity.getAppVersion(),
+        });
+
+        ApiClient.saveLicenseActivation(result, {
+          device_fingerprint: deviceFingerprint,
+        });
+        ApiClient.logActivationSaved();
+
+        showMessage(result.message || 'Aktivasyon başarılı. Giriş ekranına yönlendiriliyorsunuz...', 'success');
+        window.location.href = 'login.html';
+      } catch (error) {
+        showMessage(mapActivationError(error), 'error');
+      } finally {
+        activateBtn.disabled = false;
+        activateBtn.textContent = 'Aktive Et';
+      }
+    }
+
+    document.getElementById('activationForm').addEventListener('submit', handleActivate);
+
+    deviceNameInput.value = DeviceIdentity.getDeviceName();
+    document.getElementById('fingerprintPreview').textContent = DeviceIdentity.getDeviceFingerprint();
+
+    tryRedirectIfAlreadyActivated();
+  </script>
+</body>
+</html>

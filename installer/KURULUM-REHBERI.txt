@@ -1,0 +1,15 @@
+POS KASA SISTEMI - KOLAY KURULUM
+
+1. ZIP arsivini yeni bilgisayara kopyalayip bir klasore cikartin.
+2. Kurulum.ps1 dosyasina sag tiklayin ve PowerShell ile calistirin.
+3. Windows izin penceresinde Evet'e basin.
+4. PostgreSQL postgres kullanici sifresini girin.
+5. Kurulum tamamlaninca masaustu kisayolundan uygulamayi acin.
+
+GEREKSINIM
+- Windows 10/11 64-bit
+- PostgreSQL 15 veya ustu kurulu ve calisiyor olmali.
+- Kurulum icin yonetici izni gerekir.
+- Lisans aktivasyonu icin lisans anahtari gerekir.
+
+Bu kurulum paketi kendi Node.js runtime'ini ve backend bagimliliklarini icerir.

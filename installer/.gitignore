@@ -1,0 +1,6 @@
+# Master installer staging (buyuk dosyalar)
+staging/
+output/
+
+# Gelistirici NSSM/Node cache (nssm.exe buraya konabilir)
+# runtime/nssm/nssm.exe

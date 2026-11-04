@@ -1,0 +1,275 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+  <meta charset="UTF-8">
+  <title>Giriş Paneli</title>
+  <style>
+    body {
+      margin: 0;
+      font-family: sans-serif;
+      background: #eef1ff;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
+    }
+
+    .login-box {
+      background: white;
+      padding: 30px;
+      border-radius: 10px;
+      box-shadow: 0 0 15px rgba(0,0,0,0.2);
+      width: 350px;
+    }
+
+    .login-box h2 {
+      margin-top: 0;
+      color: #2306a3;
+      text-align: center;
+    }
+
+    .login-box input {
+      width: 100%;
+      padding: 10px;
+      margin: 10px 0;
+      font-size: 16px;
+    }
+
+    .login-box button {
+      width: 100%;
+      padding: 10px;
+      background: #2306a3;
+      color: white;
+      font-weight: bold;
+      border: none;
+      font-size: 16px;
+      cursor: pointer;
+    }
+
+    .hata {
+      color: red;
+      text-align: center;
+      margin-top: 10px;
+    }
+
+    .bilgi {
+      color: #1a5f2a;
+      text-align: center;
+      margin-top: 10px;
+      font-weight: bold;
+    }
+  </style>
+</head>
+<body>
+  <div class="login-box">
+    <h2>Giriş Yap</h2>
+    <input type="text" id="kullaniciAdi" placeholder="Kullanıcı Adı" />
+    <input type="password" id="sifre" placeholder="Şifre" />
+    <button onclick="girisYap()">Giriş</button>
+    <p class="bilgi" id="bilgiMesaji"></p>
+    <p class="hata" id="hataMesaji"></p>
+  </div>
+
+  <script src="frontend/js/config.js"></script>
+  <script src="frontend/js/device.js"></script>
+  <script src="frontend/js/apiClient.js"></script>
+  <script>
+    function redirectToActivation() {
+      window.location.href = 'activate.html';
+    }
+
+    function mapLicenseError(error) {
+      const message = (error && error.message) ? error.message : '';
+
+      if (
+        message.includes('Failed to fetch') ||
+        message.includes('NetworkError') ||
+        message.includes('Network request failed')
+      ) {
+        return 'Sunucuya bağlanılamadı';
+      }
+
+      if (message.includes('Cihaz aktivasyonu gerekli')) {
+        return null;
+      }
+
+      return message || 'Lisans doğrulanamadı';
+    }
+
+    function isNetworkError(error) {
+      const message = (error && error.message) ? error.message : '';
+      return (
+        message.includes('Failed to fetch') ||
+        message.includes('NetworkError') ||
+        message.includes('Network request failed')
+      );
+    }
+
+    function shouldRedirectToActivation(error) {
+      const message = (error && error.message) ? error.message : '';
+
+      if (message.includes('Cihaz aktivasyonu gerekli')) {
+        return true;
+      }
+
+      if (isNetworkError(error)) {
+        return false;
+      }
+
+      if (
+        message.includes('Cihaz doğrulanamadı') ||
+        message.includes('Lisans aktif değil') ||
+        message.includes('Lisans süresi dolmuş') ||
+        message.includes('Müşteri hesabı aktif değil') ||
+        message.includes('Müşteri lisans süresi dolmuş') ||
+        message.includes('Geçerli lisans bulunamadı') ||
+        message.includes('device_id + device_fingerprint')
+      ) {
+        return true;
+      }
+
+      return false;
+    }
+
+    async function ensureLicenseValid() {
+      if (!ApiClient.hasLicenseActivation()) {
+        redirectToActivation();
+        return false;
+      }
+
+      try {
+        await ApiClient.validateLicense();
+        return true;
+      } catch (error) {
+        if (isNetworkError(error)) {
+          document.getElementById('hataMesaji').innerText = 'Sunucuya bağlanılamadı';
+          return true;
+        }
+
+        if (shouldRedirectToActivation(error)) {
+          redirectToActivation();
+          return false;
+        }
+
+        document.getElementById('hataMesaji').innerText = mapLicenseError(error) || 'Lisans doğrulanamadı';
+        return true;
+      }
+    }
+
+    function redirectByRole(role) {
+      if (role === 'cashier') {
+        window.location.href = 'insert.html';
+        return;
+      }
+
+      if (['store_manager', 'customer_admin', 'platform_admin'].includes(role)) {
+        window.location.href = 'admin.paneli.html';
+        return;
+      }
+
+      ApiClient.clearSession();
+      document.getElementById('hataMesaji').innerText = 'Yetkiniz yok';
+    }
+
+    function redirectIfLoggedIn() {
+      if (!ApiClient.isLoggedIn()) return;
+
+      const user = ApiClient.getCurrentUser();
+      if (user && user.role) {
+        redirectByRole(user.role);
+      }
+    }
+
+    function showSessionExpiredMessage() {
+      const message = ApiClient.consumeSessionExpiredMessage();
+      if (!message) {
+        return;
+      }
+
+      const bilgi = document.getElementById('bilgiMesaji');
+      bilgi.innerText = message;
+      bilgi.className = 'bilgi';
+    }
+
+    function mapLoginError(error) {
+      if (ApiClient.isSessionExpiredError(error)) {
+        return null;
+      }
+
+      const message = (error && error.message) ? error.message : '';
+
+      if (
+        message.includes('Failed to fetch') ||
+        message.includes('NetworkError') ||
+        message.includes('Network request failed')
+      ) {
+        return 'Sunucuya bağlanılamadı';
+      }
+
+      if (
+        message.includes('Yetkiniz yok') ||
+        message.includes('aktif değil') ||
+        message.includes('Hesap aktif değil')
+      ) {
+        return 'Yetkiniz yok';
+      }
+
+      if (
+        message.includes('bulunamadı') ||
+        message.includes('Yanlış') ||
+        message.includes('hatalı') ||
+        message.includes('Oturum')
+      ) {
+        return 'Kullanıcı adı veya şifre hatalı';
+      }
+
+      return message || 'Kullanıcı adı veya şifre hatalı';
+    }
+
+    async function girisYap() {
+      const ad = document.getElementById('kullaniciAdi').value.trim();
+      const sifre = document.getElementById('sifre').value;
+      const hata = document.getElementById('hataMesaji');
+
+      hata.innerText = '';
+
+      if (!ad || !sifre) {
+        hata.innerText = 'Kullanıcı adı ve şifre gerekli';
+        return;
+      }
+
+      try {
+        const data = await ApiClient.login(ad, sifre);
+
+        if (data && data.user && data.user.role) {
+          redirectByRole(data.user.role);
+        } else {
+          hata.innerText = 'Giriş yanıtı geçersiz';
+        }
+      } catch (error) {
+        const loginError = mapLoginError(error);
+        if (loginError !== null) {
+          hata.innerText = loginError;
+        }
+      }
+    }
+
+    document.addEventListener('keydown', function (e) {
+      if (e.key === 'Enter') {
+        girisYap();
+      }
+    });
+
+    (async function initLoginPage() {
+      showSessionExpiredMessage();
+
+      const licenseOk = await ensureLicenseValid();
+      if (!licenseOk) {
+        return;
+      }
+
+      redirectIfLoggedIn();
+    })();
+  </script>
+</body>
+</html>
